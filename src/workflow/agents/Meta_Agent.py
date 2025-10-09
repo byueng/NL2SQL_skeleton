@@ -24,9 +24,9 @@ class MetaAgent(metaclass=ABCMeta):
 def _add(name: str, cls: Type[MetaAgent], *, override: bool):
     with _LOCK:
         if not override and name in _REGISTRY and _REGISTRY[name] is not cls:
-            exist = _REGISTRY[name]
+            exist = _REGISTRY[name.lower()]
             raise ValueError(f"Agent name wrong: '{name}' has binded to {exist.__module__}.{exist.__name__}")
-        _REGISTRY[name] = cls
+        _REGISTRY[name.lower()] = cls
 
 def register(
     name: str | None = None,
