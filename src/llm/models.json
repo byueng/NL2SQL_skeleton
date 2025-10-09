@@ -1,0 +1,32 @@
+[
+    {
+        "model_name": "",
+        "model_type": "",
+        "model_path": "",
+        "API_KEY": "",
+        "BASE_URL": "",
+        "corresponding_agent": "",
+        "description": "Test",
+        "template_name": ""
+    },
+    {
+        "model_name": "QWQ-7B",
+        "model_type": "local",
+        "model_path": "../../model/",
+        "API_KEY": "None",
+        "BASE_URL": "None",
+        "corresponding_agent": "Generator_",
+        "description": "Test",
+        "template_name": "generate_SQL"
+    },
+    {
+        "model_name": "deepseek-reasoner",
+        "model_type": "api",
+        "model_path": "None",
+        "API_KEY": "sk-zk294e648208c35eac69bfa3d50713b5836674036698dff5",
+        "BASE_URL": "https://api.zhizengzeng.com/v1",
+        "corresponding_agent": "Generator",
+        "description": "Test",
+        "template_name": "generate_SQL"
+    }
+]
