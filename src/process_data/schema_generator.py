@@ -22,27 +22,21 @@ class DDL(Schema):
     def _run(self) -> dict:
         self.sql_client.open()
         conn = self.sql_client.conn
-        if conn is not None:
-            cursor = conn.cursor()
-        else:
-            raise RuntimeError("Database connection not open")
+        schema = {}
+        if conn == None:
+            raise Exception
+        cursor = conn.cursor()
 
-        # select all tables
-        cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%';")
-        tables = cursor.fetchall()
+        # fetch table names
+        cursor.execute("SELECT name FROM sqlite_master WHERE type='table';")
+        tables = [str(table[0].lower()) for table in cursor.fetchall()]
 
-        ddl_statements = {}
+        # fetch table info
+        for table in tables:
+            cursor.execute("PRAGMA table_info({})".format(table))
+            schema[table] = [str(col[1].lower()) for col in cursor.fetchall()]
 
-        for (table_name,) in tables:
-            # 查询建表语句
-            cursor.execute(f"SELECT sql FROM sqlite_master WHERE type='table' AND name='{table_name}';")
-            result = cursor.fetchone()
-            if result and result[0]:
-                ddl_statements[table_name] = result[0] + ";"
-        
-        self.sql_client._close()
-        return ddl_statements
-
+        return schema
 
 class M_Schema(Schema):
     def __init__(self, db_id: str) -> None:
