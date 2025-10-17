@@ -72,7 +72,7 @@ class FrameWork:
                 "ground_truth_sql": self.task.SQL,
                 "answer_sql": sql,
                 "difficulty": self.task.difficulty,
-                "accuray": self.validate_sql(self.task.question, sql)
+                "accuray": self.validate_sql(self.task.SQL, sql)
             }, indent=4, ensure_ascii=False))
             f.write(",\n")
 

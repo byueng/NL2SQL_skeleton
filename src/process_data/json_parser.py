@@ -1,3 +1,29 @@
+################################
+# Assumptions:
+#   1. sql is correct
+#   2. only table name has alias
+#   3. only one intersect/union/except
+#
+# val: number(float)/string(str)/sql(dict)
+# col_unit: (agg_id, col_id, isDistinct(bool))
+# val_unit: (unit_op, col_unit1, col_unit2)
+# table_unit: (table_type, col_unit/sql)
+# cond_unit: (not_op, op_id, val_unit, val1, val2)
+# condition: [cond_unit1, 'and'/'or', cond_unit2, ...]
+# sql {
+#   'select': (isDistinct(bool), [(agg_id, val_unit), (agg_id, val_unit), ...])
+#   'from': {'table_units': [table_unit1, table_unit2, ...], 'conds': condition}
+#   'where': condition
+#   'groupBy': [col_unit1, col_unit2, ...]
+#   'orderBy': ('asc'/'desc', [val_unit1, val_unit2, ...])
+#   'having': condition
+#   'limit': None/limit value
+#   'intersect': None/sql
+#   'except': None/sql
+#   'union': None/sql
+# }
+################################
+
 import json
 import sqlite3
 from nltk import word_tokenize
@@ -16,6 +42,73 @@ TABLE_TYPE = {
 COND_OPS = ('and', 'or')
 SQL_OPS = ('intersect', 'union', 'except')
 ORDER_OPS = ('desc', 'asc')
+
+
+class Schema:
+    """
+    Simple schema which maps table&column to a unique identifier
+    """
+    def __init__(self, schema):
+        self._schema = schema
+        self._idMap = self._map(self._schema)
+
+    @property
+    def schema(self):
+        return self._schema
+
+    @property
+    def idMap(self):
+        return self._idMap
+
+    def _map(self, schema):
+        idMap = {'*': "__all__"}
+        id = 1
+        for key, vals in schema.items():
+            for val in vals:
+                idMap[key.lower() + "." + val.lower()] = "__" + key.lower() + "." + val.lower() + "__"
+                id += 1
+
+        for key in schema:
+            idMap[key.lower()] = "__" + key.lower() + "__"
+            id += 1
+
+        return idMap
+
+
+def ddl_schema(conn):
+    """
+    Get database's schema, which is a dict with table name as key
+    and list of column names as value
+    :param db: database path
+    :return: schema dict
+    """
+    schema = {}
+    cursor = conn.cursor()
+
+    # fetch table names
+    cursor.execute("SELECT name FROM sqlite_master WHERE type='table';")
+    tables = [str(table[0].lower()) for table in cursor.fetchall()]
+
+    # fetch table info
+    for table in tables:
+        cursor.execute(f'PRAGMA table_info("{table}")')
+        schema[table] = [str(col[1].lower()) for col in cursor.fetchall()]
+
+    return schema
+
+
+def get_schema_from_json(fpath):
+    with open(fpath) as f:
+        data = json.load(f)
+
+    schema = {}
+    for entry in data:
+        table = str(entry['table'].lower())
+        cols = [str(col['column_name'].lower()) for col in entry['col_data']]
+        schema[table] = cols
+
+    return schema
+
 
 def tokenize(string):
     string = str(string)
@@ -47,7 +140,7 @@ def tokenize(string):
         pre_tok = toks[eq_idx-1]
         if pre_tok in prefix:
             toks = toks[:eq_idx-1] + [pre_tok + "="] + toks[eq_idx+1: ]
-
+    # toks = [tok.strip("\"\"").lstrip("\"\"") for tok in toks]
     return toks
 
 
@@ -60,7 +153,7 @@ def scan_alias(toks):
     return alias
 
 
-def get_tables_with_alias(schema, toks):
+def get_tables_with_alias(schema: dict, toks):
     tables = scan_alias(toks)
     for key in schema:
         assert key not in tables, "Alias {} has the same name in table".format(key)
@@ -465,5 +558,5 @@ def skip_semicolon(toks, start_idx):
         idx += 1
     return idx
 
-sql = "SELECT MAX(`Percent (%) Eligible Free (K-12)`) FROM frpm WHERE   `County Name` = 'Alameda County';"
 
+schema_list = {"DDL": ddl_schema}
