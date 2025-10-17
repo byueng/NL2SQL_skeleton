@@ -9,7 +9,6 @@ import json
 from typing import List, Dict, Any
 from loguru import logger
 
-
 from runner.enum_aggretion import Task, Work
 from runner.visual_flow import Visual
 from process_data.schema_generator import schema_list
@@ -22,6 +21,7 @@ class RunManager:
         self.tasks: List = []
         self.schema_generator = schema_list[args.schema_generator]
         self.total_task_num: int = 0
+        self.model_list = None
         if self.schema_generator != None:
             logger.info(f"RunManager init correctly, chosen schema_generator: {args.schema_generator}")
         else:
@@ -41,6 +41,9 @@ class RunManager:
             self.tasks.append(task)
         self.total_task_num = len(self.tasks)
         logger.info(f"initialize task completed, total task number is {self.total_task_num}")
+        with open(self.args.model_path, 'r') as f:
+            self.model_list = json.load(f)
+        logger.info(f"model list load complete.")
 
     def run_task(self):
         """
@@ -63,6 +66,6 @@ class RunManager:
         """
         work = Work(task=task)
         logger.info(f"begin task: {task.db_id} {task.question_id}")
-        work.status = engine(self.args, task)
+        work.status = engine(self.args, task, self.schema_generator, self.model_list)
         return work
 

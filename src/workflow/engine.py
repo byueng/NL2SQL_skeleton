@@ -14,17 +14,17 @@ def set_schema(sql_client, schema_generator):
     schema = schema_generator(sql_client)._run()
     return schema 
 
-
-def engine(args, task) -> bool:
+def engine(args, task, schema_generator, model_list) -> bool:
     """
     Create and compile the NL2SQL FrameWork running.
     
     Three class is used in Framework: DataPreprogressing, Generator, Selection
     """
     sql_client = DB_System(args, task)
-    schema_generator = schema_list[args.schema_generator]
-    schema: dict = set_schema(sql_client, schema_generator)
-    framework = FrameWork(args, sql_client, schema, task)
+    sql_client.open()
+    schema_dict: dict = schema_generator(sql_client.conn)
+    schema: Schema = Schema(schema_dict)
+    framework = FrameWork(args, sql_client, schema, task, model_list)
     framework._run()
     return True
     

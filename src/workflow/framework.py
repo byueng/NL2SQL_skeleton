@@ -18,11 +18,12 @@ from workflow.agents.agent_factory import registry_agents
 
 
 class FrameWork:
-    def __init__(self, args, sql_client, schema, task) -> None:
+    def __init__(self, args, sql_client, schema, task, model_list) -> None:
         self.args = args
         self.sql_client: DB_System = sql_client
         self.schema = schema
         self.task = task
+        self.model_list = model_list
         self.agents: Optional[List[MetaAgent]] = None
         self._init()
  
@@ -95,14 +96,11 @@ class FrameWork:
 
     def bind_agents(self) -> List[Model]:
         agents: List = list()
-        model_path = self.args.model_path
-        with open(model_path, 'r') as f:
-            model_list = json.load(f)
         agents_str = getenv("AGENTS", "[]").lower()
         agents_list = literal_eval(agents_str)
         for agent in agents_list:
             try:
-                agents.append(*[Model(**singal_model) for singal_model in model_list if agent == singal_model["corresponding_agent"] ])
+                agents.append(*[Model(**singal_model) for singal_model in self.model_list if agent == singal_model["corresponding_agent"] ])
             except Exception as e:
                 logger.error(f"Bind failed, check the .env file and models.json(locates in llm folder)")
                 sys.exit(1)
