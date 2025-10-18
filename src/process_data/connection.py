@@ -39,7 +39,6 @@ class DB_System:
             
         db_path = os.path.join(self.args.data_path, f"{self.args.data_mode}_databases", self.task.db_id, f"{self.task.db_id}.sqlite")
         self._conn = connect(db_path)
-        logger.debug(f"Database connection opened for {self.task.db_id}")
     
     def _close(self):
         if self._conn is None:
@@ -47,7 +46,6 @@ class DB_System:
         else:
             self._conn.close()
             self._conn = None
-            logger.debug(f"Database connection closed for {self.task.db_id}")
 
     @contextmanager
     def get_connection(self):
