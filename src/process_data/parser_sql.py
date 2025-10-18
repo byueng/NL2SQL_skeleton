@@ -503,9 +503,6 @@ def skip_semicolon(toks, start_idx):
         idx += 1
     return idx
 
-schema_list = {"DDL": ddl_schema}
-
-
 def extract_sql(response) -> str:
     pattern = r'```sql(.*?)```'
     matches: str = re.findall(pattern, response, re.DOTALL)[0]    

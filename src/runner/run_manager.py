@@ -100,7 +100,7 @@ class RunManager:
             self.model_list = [self.model_list]
 
         self.agents = self.bind_agents(self.model_list)
-        logger.info(f"Agents build successfully, builded agents: {[agent.model_info.model_name for agent in agents]}")
+        logger.info(f"Agents build successfully, builded agents: {[agent.model_info.model_name for agent in self.agents]}")
 
     def run_task(self):
         """
@@ -124,9 +124,11 @@ class RunManager:
         
         db_system = DB_System(self.args, task)
         schema: Schema = Schema(self.schema_generator(db_system.conn))
-        
+
         if self.agents == None:
             logger.warning(f"agents bind nothing")
             sys.exit(1)
 
-        nl2sql_framework = FrameWork(db_system, schema, self.agents)
+        # nl2sql_framework = FrameWork(db_system, schema, self.agents)
+        nl2sql_framework = FrameWork(self.args, db_system, schema, task, self.agents)
+        nl2sql_framework._run()
