@@ -3,7 +3,7 @@ import importlib, pkgutil, inspect, sys
 from workflow import agents
 from runner.enum_aggretion import Model
 from typing import Iterable, Dict, Any, List
-from workflow.agents.Meta_Agent import MetaAgent, get_registry
+from workflow.agents.meta_agent import MetaAgent, get_registry
 
 def autodiscover_agents() -> None:
     """
@@ -46,7 +46,13 @@ def registry_agents(
     out: List[MetaAgent] = []
     for i in range(len(agents)):
         n = agents[i].corresponding_agent
-        cls = reg.get(n)
+        # 大小写不敏感的查找
+        cls = None
+        for reg_name, reg_cls in reg.items():
+            if reg_name.lower() == n.lower():
+                cls = reg_cls
+                break
+        
         if cls is None:
             raise KeyError(f"Can't find registried agent: {n}; Could use: {list(reg.keys())}")
 

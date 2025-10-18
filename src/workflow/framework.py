@@ -5,31 +5,22 @@
 # @description: Define the Generator.
 
 import json, sys, importlib, os
-import pydantic_settings
-import dotenv
+
 from loguru import logger
 from process_data.connection import DB_System
 from typing import List, Optional
-from os import getenv
-from ast import literal_eval
 from runner.enum_aggretion import Model, Request, Response
-from workflow.agents.Meta_Agent import MetaAgent
-from workflow.agents.agent_factory import registry_agents
+from workflow.agents.meta_agent import MetaAgent
 
 
 class FrameWork:
-    def __init__(self, args, sql_client, schema, task, model_list) -> None:
+    def __init__(self, args, sql_client, schema, task, model_list, agents: Optional[List[MetaAgent]]) -> None:
         self.args = args
         self.sql_client: DB_System = sql_client
         self.schema = schema
         self.task = task
         self.model_list = model_list
-        self.agents: Optional[List[MetaAgent]] = None
-        self._init()
- 
-    def _init(self):
-        agents = self.bind_agents()
-        self.agents_build(agents)
+        self.agents: Optional[List[MetaAgent]] = agents
 
     def get_template(self, template_name):
         """
@@ -93,26 +84,3 @@ class FrameWork:
                     "result": result
                 })
                 self.save_sql(response.result, agent.model_info.model_name)
-
-    def bind_agents(self) -> List[Model]:
-        agents: List = list()
-        agents_str = getenv("AGENTS", "[]").lower()
-        agents_list = literal_eval(agents_str)
-        for agent in agents_list:
-            try:
-                agents.append(*[Model(**singal_model) for singal_model in self.model_list if agent == singal_model["corresponding_agent"] ])
-            except Exception as e:
-                logger.error(f"Bind failed, check the .env file and models.json(locates in llm folder)")
-                sys.exit(1)
-
-        if len(agents_list) != len(agents):
-            logger.error(f"Can't bind all agents from file, Check out them. (include .env file, models.json)")
-            sys.exit(1)
-        return agents
-
-    def agents_build(self, agents: List[Model]):
-        """
-            create instance each agents from agents list.
-        """
-        agents_cls: List[MetaAgent] = registry_agents(agents)
-        self.agents = agents_cls

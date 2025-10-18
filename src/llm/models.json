@@ -20,13 +20,13 @@
         "template_name": "generate_SQL"
     },
     {
-        "model_name": "deepseek-reasoner",
+        "model_name": "gemini-2.5-flash-thinking",
         "model_type": "api",
         "model_path": "None",
-        "API_KEY": "sk-zk294e648208c35eac69bfa3d50713b5836674036698dff5",
+        "API_KEY": "sk-zk219ab38d155ae316d88a0b1f03a96c8b968e79784ed1b7",
         "BASE_URL": "https://api.zhizengzeng.com/v1",
         "corresponding_agent": "Generator",
         "description": "Test",
-        "template_name": "generate_SQL"
+        "template_name": "generate_sql"
     }
 ]

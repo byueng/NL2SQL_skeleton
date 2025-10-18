@@ -9,8 +9,7 @@ import json
 from typing import List, Dict, Any
 from loguru import logger
 
-from runner.enum_aggretion import Task, Work
-from runner.visual_flow import Visual
+from runner.enum_aggretion import Task
 from process_data.schema_generator import schema_list
 from workflow.engine import engine
 
@@ -49,12 +48,10 @@ class RunManager:
         """
             NL2SQL work flow.
         """
-        # progress = Visual(self.total_task_num)
         for task in self.tasks:
-            work = self.worker(task)
-            # progress.update(1)
+            self.worker(task)
        
-    def worker(self, task: Task) -> Work:
+    def worker(self, task: Task):
         """
         Worker function to process a single task.
         
@@ -64,8 +61,11 @@ class RunManager:
         Returns:
             tuple: The state of the task processing and task identifiers.
         """
-        work = Work(task=task)
         logger.info(f"begin task: {task.db_id} {task.question_id}")
-        work.status = engine(self.args, task, self.schema_generator, self.model_list)
-        return work
-
+        engine(
+                self.args,
+                task,
+                self.schema_generator,
+                self.model_list
+                )
+        

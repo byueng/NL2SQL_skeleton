@@ -1,6 +1,6 @@
-from workflow.agents.Meta_Agent import MetaAgent, register
+from workflow.agents.meta_agent import MetaAgent, register
 from llm.llm_meta import Llm
-from process_data.json_parser import parse_result
+from process_data.parser_sql import extract_sql
 
 @register()
 class Generator(MetaAgent):
@@ -8,7 +8,7 @@ class Generator(MetaAgent):
         super().__init__(model_info)
 
     def parse_result(self, result):
-        sql = parse_result(result)
+        sql = extract_sql(result)
         return sql
 
     def _run(self) -> str | None:

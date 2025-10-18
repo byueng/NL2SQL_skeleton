@@ -28,20 +28,6 @@ class Task(BaseModel):
     difficulty: Optional[str] = None
 
 
-class Work(BaseModel):
-    """
-    Represents a worker with task and work status details.
-    
-    Attributes:
-        task: Task enum
-        status: The status of the work whether done or not done.
-
-    """
-    task: Task
-    status: bool = True
-
-
-
 class Model(BaseModel):
     """
         In the model <--> agent binding stage, a media variable to create.
