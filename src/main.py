@@ -26,7 +26,7 @@ def parse_augements_debug() -> argparse.Namespace:
 
     debug_args = argparse.Namespace()
     debug_args.data_mode = "dev" 
-    debug_args.data_path = "./data/BIRD/dev/"  
+    debug_args.data_path = "../dev/"  
     debug_args.model_path = "./src/llm/models.json"
     debug_args.schema_generator = "DDL"
     
@@ -51,7 +51,7 @@ def load_dataset(data_path: str) -> List[Dict[str, Any]]:
 
 def main():
     # Debug model, if True using debug, or use cli model.
-    DEBUG_MODE = False
+    DEBUG_MODE = True
     if DEBUG_MODE:
         args = parse_augements_debug()
     else:
@@ -61,7 +61,6 @@ def main():
     runner = RunManager(args)
     runner.initialize_tasks(dataset)
     runner.run_task()
-
 
 if __name__ == "__main__":
     main()

@@ -34,7 +34,7 @@ class DB_System:
 
     def open(self) -> None:
         if self._conn is not None:
-            logger.warning("Connection already open, closing existing connection first")
+            # logger.warning("Connection already open, closing existing connection first")
             self._close()
             
         db_path = os.path.join(self.args.data_path, f"{self.args.data_mode}_databases", self.task.db_id, f"{self.task.db_id}.sqlite")

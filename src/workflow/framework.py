@@ -13,18 +13,6 @@ from typing import List, Optional
 from runner.enum_aggretion import Model, Request, Response
 from workflow.agents.meta_agent import MetaAgent
 
-# class FrameWork:
-#     def __init__(
-#             self,
-#             db_system: DB_System,
-#             schema: Schema,
-#             agents: List[MetaAgent]
-#             ) -> None:
-#         self.db_system = db_system
-#         self.schema = schema
-#         self.agents = agents
-
-
 class FrameWork:
     def __init__(self, args, sql_client, schema, task, agents: Optional[List[MetaAgent]]) -> None:
         self.args = args
@@ -39,7 +27,7 @@ class FrameWork:
         """
         template_module = importlib.import_module("prompt_template." + template_name)
         template_func = getattr(template_module, template_name)
-        template = template_func(self.task, self.schema)
+        template = template_func(self.task, self.schema.schema)
         return template
 
     def validate_sql(self, gold_sql, generate_sql) -> bool:
