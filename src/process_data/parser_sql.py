@@ -24,8 +24,10 @@
 # }
 ################################
 
-import json, re
+import json
+import re
 import sqlite3
+from typing import Dict, List, Any, Tuple
 from nltk import word_tokenize
 
 CLAUSE_KEYWORDS = ('select', 'from', 'where', 'group', 'order', 'limit', 'intersect', 'union', 'except')
@@ -43,47 +45,47 @@ COND_OPS = ('and', 'or')
 SQL_OPS = ('intersect', 'union', 'except')
 ORDER_OPS = ('desc', 'asc')
 
-def get_schema_from_json(fpath):
+def get_schema_from_json(fpath: str) -> Dict[str, List[str]]:
     with open(fpath) as f:
         data = json.load(f)
 
-    schema = {}
+    schema: Dict[str, List[str]] = {}
     for entry in data:
-        table = str(entry['table'].lower())
-        cols = [str(col['column_name'].lower()) for col in entry['col_data']]
+        table: str = str(entry['table'].lower())
+        cols: List[str] = [str(col['column_name'].lower()) for col in entry['col_data']]
         schema[table] = cols
 
     return schema
 
 
-def tokenize(string):
+def tokenize(string: str) -> List[str]:
     string = str(string)
     string = string.replace("\'", "\"")  # ensures all string values wrapped by "" problem??
-    quote_idxs = [idx for idx, char in enumerate(string) if char == '"']
+    quote_idxs: List[int] = [idx for idx, char in enumerate(string) if char == '"']
     assert len(quote_idxs) % 2 == 0, "Unexpected quote"
 
     # keep string value as token
-    vals = {}
+    vals: Dict[str, str] = {}
     for i in range(len(quote_idxs)-1, -1, -2):
-        qidx1 = quote_idxs[i-1]
-        qidx2 = quote_idxs[i]
-        val = string[qidx1: qidx2+1]
-        key = "__val_{}_{}__".format(qidx1, qidx2)
+        qidx1: int = quote_idxs[i-1]
+        qidx2: int = quote_idxs[i]
+        val: str = string[qidx1: qidx2+1]
+        key: str = "__val_{}_{}__".format(qidx1, qidx2)
         string = string[:qidx1] + key + string[qidx2+1:]
         vals[key] = val
 
-    toks = [word.lower() for word in word_tokenize(string)]
+    toks: List[str] = [word.lower() for word in word_tokenize(string)]
     # replace with string value token
     for i in range(len(toks)):
         if toks[i] in vals:
             toks[i] = vals[toks[i]]
-
+    
     # find if there exists !=, >=, <=
-    eq_idxs = [idx for idx, tok in enumerate(toks) if tok == "="]
+    eq_idxs: List[int] = [idx for idx, tok in enumerate(toks) if tok == "="]
     eq_idxs.reverse()
-    prefix = ('!', '>', '<')
+    prefix: Tuple[str, ...] = ('!', '>', '<')
     for eq_idx in eq_idxs:
-        pre_tok = toks[eq_idx-1]
+        pre_tok: str = toks[eq_idx-1]
         if pre_tok in prefix:
             toks = toks[:eq_idx-1] + [pre_tok + "="] + toks[eq_idx+1: ]
     # toks = [tok.strip("\"\"").lstrip("\"\"") for tok in toks]
@@ -503,8 +505,11 @@ def skip_semicolon(toks, start_idx):
         idx += 1
     return idx
 
-def extract_sql(response) -> str:
-    pattern = r'```sql(.*?)```'
-    matches: str = re.findall(pattern, response, re.DOTALL)[0]    
-    sql = matches.replace("\n", " ").strip().lstrip()
-    return sql
+def extract_sql(response: str) -> str:
+    pattern: str = r'```sql(.*?)```'
+    matches = re.findall(pattern, response, re.DOTALL)
+    if matches:
+        sql: str = matches[0].replace("\n", " ").strip().lstrip()
+        return sql
+    else:
+        return response.strip()

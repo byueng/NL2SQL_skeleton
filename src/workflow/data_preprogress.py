@@ -3,11 +3,9 @@
 # @Author  : jwm
 # @File    : datapreprogress.py
 # @description: Define The DataPreprogress.
-from typing import Optional
-
-
+from typing import Any
 
 class DataPreprogress:
-    def __init__(self, args) -> None:
+    def __init__(self, args: Any) -> None:
         self.args = args
 

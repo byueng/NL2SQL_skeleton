@@ -6,5 +6,6 @@
     "BASE_URL": "",
     "corresponding_agent": "",
     "description": "Test",
-    "template_name": ""
+    "template_name": "",
+    "output_name": ""
 }

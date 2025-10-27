@@ -52,6 +52,7 @@ class Model(BaseModel):
     corresponding_agent: str 
     description: str
     template_name: str
+    output_name: str
 
 
 class Request(BaseModel):

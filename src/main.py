@@ -10,12 +10,12 @@ from typing import List, Dict, Any
 from runner.run_manager import RunManager
 
 def parse_augements() -> argparse.Namespace:
-    args = argparse.ArgumentParser(description="")
-    args.add_argument("--data_mode", type=str, required=True)
-    args.add_argument("--data_path", type=str, required=True)
-    args.add_argument("--model_path", type=str, required=True)
-    args.add_argument("--schema_generator", type=str, required=True)
-    args = args.parse_args()
+    parser = argparse.ArgumentParser(description="")
+    parser.add_argument("--data_mode", type=str, required=True)
+    parser.add_argument("--data_path", type=str, required=True)
+    parser.add_argument("--model_path", type=str, required=True)
+    parser.add_argument("--schema_generator", type=str, required=True)
+    args: argparse.Namespace = parser.parse_args()
     return args
 
 def parse_augements_debug() -> argparse.Namespace:
@@ -26,7 +26,7 @@ def parse_augements_debug() -> argparse.Namespace:
 
     debug_args = argparse.Namespace()
     debug_args.data_mode = "dev" 
-    debug_args.data_path = "../dev/"  
+    debug_args.data_path = "../dataset/BIRD/dev/"  
     debug_args.model_path = "./src/llm/models.json"
     debug_args.schema_generator = "DDL"
     
@@ -46,19 +46,19 @@ def load_dataset(data_path: str) -> List[Dict[str, Any]]:
         List[Dict[str, Any]]: The loaded dataset.
     """
     with open(data_path, 'r') as file:
-        dataset = json.load(file)
+        dataset: List[Dict[str, Any]] = json.load(file)
     return dataset
 
-def main():
+def main() -> None:
     # Debug model, if True using debug, or use cli model.
-    DEBUG_MODE = True
+    DEBUG_MODE: bool = True
     if DEBUG_MODE:
-        args = parse_augements_debug()
+        args: argparse.Namespace = parse_augements_debug()
     else:
         args = parse_augements()
         
-    dataset = load_dataset(args.data_path + f"{args.data_mode}.json")
-    runner = RunManager(args)
+    dataset: List[Dict[str, Any]] = load_dataset(args.data_path + f"{args.data_mode}.json")
+    runner: RunManager = RunManager(args)
     runner.initialize_tasks(dataset)
     runner.run_task()
 

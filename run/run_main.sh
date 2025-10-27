@@ -13,3 +13,4 @@ python ./src/main.py --data_mode "$db_mode" \
                      --data_path "$db_path" \
                      --model_path "$model_path" \
                      --schema_generator "$schema_generator" \
+                     

@@ -1,11 +1,10 @@
-import loguru
 from openai import OpenAI
 from typing import Optional
 from transformers import AutoTokenizer, AutoModelForCausalLM
 from pathlib import Path
 from loguru import logger
 
-from runner.enum_aggretion import Model, Task, Request
+from runner.enum_aggretion import Model, Request
 
 class Llm:
     def __init__(
@@ -38,7 +37,7 @@ class Llm:
         return answer 
 
     def llm_local_call(self) -> str:
-        model_path = Path(self.model_info.model_path + self.model_info.model_name)
+        model_path: Path = Path(self.model_info.model_path + self.model_info.model_name)
 
         model = AutoModelForCausalLM.from_pretrained(
             model_path,
@@ -52,11 +51,11 @@ class Llm:
         if self.request is None or not hasattr(self.request, "template"):
             raise ValueError("Request object is None or missing 'template' attribute.")
         
-        prompt = self.request.template
+        prompt: str = self.request.template
         messages = [
             {"role": "user", "content": prompt}
         ]
-        text = tokenizer.apply_chat_template(
+        text: str = tokenizer.apply_chat_template(
             messages,
             tokenize=False,
             add_generation_prompt=True
@@ -70,5 +69,5 @@ class Llm:
         generated_ids = [
             output_ids[len(input_ids):] for input_ids, output_ids in zip(model_inputs.input_ids, generated_ids)
         ]
-        response = tokenizer.batch_decode(generated_ids, skip_special_tokens=True)[0]
+        response: str = tokenizer.batch_decode(generated_ids, skip_special_tokens=True)[0]
         return response

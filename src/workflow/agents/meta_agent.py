@@ -12,10 +12,26 @@ _LOCK = threading.RLock()
 class MetaAgent(metaclass=ABCMeta):
     __agent_name__: str
     __agent_aliases__: tuple[str, ...] 
-    def __init__(self, model_info) -> None:
+    def __init__(self, model_info: Model) -> None:
         self.model_info: Model = model_info
         self._input: Optional[Request] = None
         self._output: Optional[Response] = None        
+
+    @property
+    def input(self) -> Optional[Request]:
+        return self._input
+
+    @input.setter
+    def input(self, request: Optional[Request]) -> None:
+        self._input = request
+
+    @property
+    def output(self) -> Optional[Response]:
+        return self._output
+
+    @output.setter
+    def output(self, response: Optional[Response]) -> None:
+        self._output = response
 
     @abstractmethod
     def _run(self) -> str | None:

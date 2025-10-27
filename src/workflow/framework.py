@@ -4,82 +4,66 @@
 # @File    : generator.py
 # @description: Define the Generator.
 
-import json, sys, importlib, os
+import json
+import sys
+import importlib
+import os
+from typing import List, Optional, Any, Dict, Tuple
 
 from loguru import logger
 from process_data.connection import DB_System
 from process_data.schema_generator import Schema
-from typing import List, Optional
-from runner.enum_aggretion import Model, Request, Response
+from runner.enum_aggretion import Model, Request, Response, Task
 from workflow.agents.meta_agent import MetaAgent
 
 class FrameWork:
-    def __init__(self, args, sql_client, schema, task, agents: Optional[List[MetaAgent]]) -> None:
+    def __init__(self, args: Any, sql_client: DB_System, schema: Schema, task: Task, agents: Optional[List[MetaAgent]]) -> None:
         self.args = args
         self.sql_client: DB_System = sql_client
-        self.schema = schema
-        self.task = task
+        self.schema: Schema = schema
+        self.task: Task = task
         self.agents: Optional[List[MetaAgent]] = agents
 
-    def get_template(self, template_name):
+    def get_template(self, template_name: str) -> str:
         """
             Load template function from config file.
         """
         template_module = importlib.import_module("prompt_template." + template_name)
         template_func = getattr(template_module, template_name)
-        template = template_func(self.task, self.schema.schema)
+        template: str = template_func(self.task, self.schema.schema)
         return template
 
-    def validate_sql(self, gold_sql, generate_sql) -> bool:
-        self.sql_client.open()
-        conn = self.sql_client.conn
-        if conn is not None:
-            cursor = conn.cursor()
-        else:
-            raise RuntimeError("Database connection not open")
-        
-        try:
-            cursor.execute(gold_sql)
-            gold_result = cursor.fetchall()
-            cursor.execute(generate_sql)
-            generate_result = cursor.fetchall()
-            self.sql_client._close()
-            if gold_result == generate_result:
-                return True
-            else:
-                return False
-            
-        except Exception as e:
-            print(e)
-            return False
-
-    def save_sql(self, sql, model_name):
-        file_path = f"./result/{model_name}/original_result.json"
-        os.makedirs(os.path.dirname(file_path), exist_ok=True)
-        with open(file_path, "a", encoding="utf-8") as f:
-            f.write(json.dumps({
-                "db_id": self.task.db_id,
-                "question": self.task.question,
-                "ground_truth_sql": self.task.SQL,
-                "answer_sql": sql,
-                "difficulty": self.task.difficulty,
-                "accuray": self.validate_sql(self.task.SQL, sql)
-            }, indent=4, ensure_ascii=False))
-            f.write(",\n")
-
     # need modify
-    def _run(self):
-        if self.agents == None:
+    def _run(self) -> Optional[Response]:
+        if self.agents is None:
             logger.warning(f"Agent list is empty!")
+            return None
         else:
             for agent in self.agents:
                 request: Request = Request(**{
                     "template": self.get_template(agent.model_info.template_name),
                 })
-                agent._input = request
-                result = agent._run()
+                agent.input = request
+                result: Optional[str] = agent._run()
                 response: Response = Response(**{
                     "status": True,
                     "result": result
                 })
-                self.save_sql(response.result, agent.model_info.model_name)
+                agent.output = response
+            
+            # 安全地访问最后一个agent的输出
+            last_agent = self.agents[-1]
+            if last_agent.output is not None:
+                from runner.evaluate import Evaluator
+                evaluator: Evaluator = Evaluator(
+                    self.task, 
+                    last_agent.output.result, 
+                    self.sql_client, 
+                    last_agent.model_info.output_name
+                )
+                evaluator._run()
+                return last_agent.output
+            else:
+                logger.warning("Last agent output is None!")
+                return None
+        
