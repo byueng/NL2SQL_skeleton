@@ -56,6 +56,7 @@ class FrameWork:
             if last_agent.output is not None:
                 from runner.evaluate import Evaluator
                 evaluator: Evaluator = Evaluator(
+                    self.schema,
                     self.task, 
                     last_agent.output.result, 
                     self.sql_client, 

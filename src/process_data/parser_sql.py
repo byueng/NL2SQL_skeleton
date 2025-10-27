@@ -30,6 +30,8 @@ import sqlite3
 from typing import Dict, List, Any, Tuple
 from nltk import word_tokenize
 
+from process_data.schema_generator import Schema
+
 CLAUSE_KEYWORDS = ('select', 'from', 'where', 'group', 'order', 'limit', 'intersect', 'union', 'except')
 JOIN_KEYWORDS = ('join', 'on', 'as')
 
@@ -97,28 +99,38 @@ def scan_alias(toks):
     as_idxs = [idx for idx, tok in enumerate(toks) if tok == 'as']
     alias = {}
     for idx in as_idxs:
+        
         alias[toks[idx+1]] = toks[idx-1]
     return alias
 
 
-def get_tables_with_alias(schema: dict, toks):
+def get_tables_with_alias(schema: Schema, toks):
     tables = scan_alias(toks)
-    for key in schema:
+    for key in schema.schema:
         assert key not in tables, "Alias {} has the same name in table".format(key)
         tables[key] = key
     return tables
-
 
 def parse_col(toks, start_idx, tables_with_alias, schema, default_tables=None):
     """
         :returns next idx, column id
     """
-    tok = toks[start_idx]
+    tok_raw = toks[start_idx]
+    # if column name is quoted like "Free Meal Count (K-12)", strip quotes
+    if isinstance(tok_raw, str) and tok_raw.startswith('"') and tok_raw.endswith('"'):
+        tok = tok_raw.strip('"').lower()
+    else:
+        tok = tok_raw
     if tok == "*":
         return start_idx + 1, schema.idMap[tok]
 
     if '.' in tok:  # if token is a composite
         alias, col = tok.split('.')
+        # strip possible quotes around alias/col
+        if alias.startswith('"') and alias.endswith('"'):
+            alias = alias.strip('"').lower()
+        if col.startswith('"') and col.endswith('"'):
+            col = col.strip('"').lower()
         key = tables_with_alias[alias] + "." + col
         return start_idx+1, schema.idMap[key]
 
@@ -126,8 +138,9 @@ def parse_col(toks, start_idx, tables_with_alias, schema, default_tables=None):
 
     for alias in default_tables:
         table = tables_with_alias[alias]
-        if tok in schema.schema[table]:
-            key = table + "." + tok
+        # compare lowercased token to schema columns (which are stored lowercased)
+        if isinstance(tok, str) and tok.lower() in schema.schema[table]:
+            key = table + "." + tok.lower()
             return start_idx+1, schema.idMap[key]
 
     assert False, "Error col: {}".format(tok)
@@ -178,6 +191,32 @@ def parse_val_unit(toks, start_idx, tables_with_alias, schema, default_tables=No
     if toks[idx] == '(':
         isBlock = True
         idx += 1
+    # handle CAST(...) expressions as a special value unit
+    # CAST can appear as a value in select / where / order by etc.
+    if toks[idx] == 'cast':
+        # expect syntax: cast ( <expr> as <type> )
+        assert idx + 1 < len_ and toks[idx+1] == '('
+        idx += 2  # skip 'cast' and '('
+        # parse inner expression as a value (could be column, number, string, or subselect)
+        idx, inner_val = parse_value(toks, idx, tables_with_alias, schema, default_tables)
+        # expect 'as'
+        assert idx < len_ and toks[idx] == 'as', "Expected 'as' in cast"
+        idx += 1
+        # collect type tokens until closing ')'
+        type_tokens = []
+        while idx < len_ and toks[idx] != ')':
+            type_tokens.append(toks[idx])
+            idx += 1
+        type_str = ' '.join(type_tokens)
+        assert idx < len_ and toks[idx] == ')'
+        idx += 1
+        # represent cast as a special col_unit-like object inside val_unit
+        # val_unit: (unit_op, col_unit1, col_unit2)
+        # we store col_unit1 as ('cast', inner_val, type_str)
+        if isBlock:
+            # if it was wrapped in parentheses, nothing more to do (we already consumed the ')')
+            pass
+        return idx, (UNIT_OPS.index('none'), ('cast', inner_val, type_str), None)
 
     col_unit1 = None
     col_unit2 = None
@@ -227,6 +266,27 @@ def parse_value(toks, start_idx, tables_with_alias, schema, default_tables=None)
         val = toks[idx]
         idx += 1
     else:
+        # handle CAST(...) as a value
+        if toks[idx] == 'cast':
+            # expect cast ( <expr> as <type> )
+            assert idx + 1 < len_ and toks[idx+1] == '('
+            idx += 2
+            idx, inner_val = parse_value(toks, idx, tables_with_alias, schema, default_tables)
+            assert toks[idx] == 'as', "Expected 'as' in cast"
+            idx += 1
+            type_tokens = []
+            while idx < len_ and toks[idx] != ')':
+                type_tokens.append(toks[idx])
+                idx += 1
+            type_str = ' '.join(type_tokens)
+            assert toks[idx] == ')'
+            idx += 1
+            val = ('cast', inner_val, type_str)
+            if isBlock:
+                assert toks[idx] == ')'
+                idx += 1
+            return idx, val
+
         try:
             val = float(toks[idx])
             idx += 1
@@ -483,6 +543,7 @@ def parse_sql(toks, start_idx, tables_with_alias, schema):
         idx += 1
         idx, IUE_sql = parse_sql(toks, idx, tables_with_alias, schema)
         sql[sql_op] = IUE_sql
+
     return idx, sql
 
 

@@ -11,10 +11,11 @@ from loguru import logger
 
 from runner.enum_aggretion import Task
 from process_data.connection import DB_System
-from process_data.parser_sql import tokenize, parse_sql
+from process_data.parser_sql import tokenize, get_tables_with_alias, parse_sql
 
 class Evaluator:
-    def __init__(self, task: Task, pr_sql: Optional[str], sql_client: DB_System, output_name: str) -> None:
+    def __init__(self, schema, task: Task, pr_sql: Optional[str], sql_client: DB_System, output_name: str) -> None:
+        self.schema = schema
         self.task: Task = task
         self.pr_sql: Optional[str] = pr_sql
         self.sql_client: DB_System = sql_client
@@ -22,13 +23,19 @@ class Evaluator:
 
     def _run(self) -> None:
         if self.pr_sql is not None:
-            self.save_sql(self.pr_sql, self.task, self.output_name)
-            token = tokenize(self.pr_sql)
-            print(token)
+            pr_sql = self.pr_sql.replace("`", "'")
+            self.save_sql(pr_sql, self.task, self.output_name)
+            self.parser(pr_sql)
 
         else:
             logger.warning("Generated SQL is None, skipping save.")
     
+    def parser(self, pr_sql):
+        pass
+        # toks = tokenize(pr_sql)
+        # tables_with_alias = get_tables_with_alias(self.schema, toks)
+        # i, k = parse_sql(toks, 0, tables_with_alias, self.schema)
+
     def validate_sql(self, gold_sql: str, generate_sql: str) -> bool:
         self.sql_client.open()
         conn = self.sql_client.conn
