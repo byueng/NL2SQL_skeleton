@@ -31,10 +31,9 @@ class Evaluator:
             logger.warning("Generated SQL is None, skipping save.")
     
     def parser(self, pr_sql):
-        pass
-        # toks = tokenize(pr_sql)
-        # tables_with_alias = get_tables_with_alias(self.schema, toks)
-        # i, k = parse_sql(toks, 0, tables_with_alias, self.schema)
+        toks = tokenize(pr_sql)
+        tables_with_alias = get_tables_with_alias(self.schema, toks)
+        i, k = parse_sql(toks, 0, tables_with_alias, self.schema)
 
     def validate_sql(self, gold_sql: str, generate_sql: str) -> bool:
         self.sql_client.open()

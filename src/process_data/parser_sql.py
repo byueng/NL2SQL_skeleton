@@ -99,7 +99,6 @@ def scan_alias(toks):
     as_idxs = [idx for idx, tok in enumerate(toks) if tok == 'as']
     alias = {}
     for idx in as_idxs:
-        
         alias[toks[idx+1]] = toks[idx-1]
     return alias
 
