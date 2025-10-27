@@ -26,7 +26,7 @@ def parse_augements_debug() -> argparse.Namespace:
 
     debug_args = argparse.Namespace()
     debug_args.data_mode = "dev" 
-    debug_args.data_path = "../dataset/BIRD/dev/"  
+    debug_args.data_path = "../../dataset/BIRD/dev/"  
     debug_args.model_path = "./src/llm/models.json"
     debug_args.schema_generator = "DDL"
     
