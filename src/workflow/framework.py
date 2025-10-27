@@ -51,8 +51,8 @@ class FrameWork:
                 })
                 agent.output = response
             
-            # 安全地访问最后一个agent的输出
             last_agent = self.agents[-1]
+            
             if last_agent.output is not None:
                 from runner.evaluate import Evaluator
                 evaluator: Evaluator = Evaluator(

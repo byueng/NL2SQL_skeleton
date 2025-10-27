@@ -59,7 +59,6 @@ class RunManager:
 
         agents_str: str = getenv("AGENTS", "[]") 
         agents_list: List[str] = literal_eval(agents_str)
-        logger.info(f"load agents_list: {agents_list}")
         for agent in agents_list:
             try:
                 # 使用大小写不敏感的匹配

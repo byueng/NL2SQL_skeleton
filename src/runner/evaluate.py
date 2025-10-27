@@ -5,11 +5,13 @@
 # @description: For the High King
 import os
 import json 
-from typing import Dict, Any, List, Tuple, Optional
 
+from typing import Dict, Any, List, Tuple, Optional
 from loguru import logger
+
 from runner.enum_aggretion import Task
 from process_data.connection import DB_System
+from process_data.parser_sql import tokenize, parse_sql
 
 class Evaluator:
     def __init__(self, task: Task, pr_sql: Optional[str], sql_client: DB_System, output_name: str) -> None:
@@ -21,6 +23,9 @@ class Evaluator:
     def _run(self) -> None:
         if self.pr_sql is not None:
             self.save_sql(self.pr_sql, self.task, self.output_name)
+            token = tokenize(self.pr_sql)
+            print(token)
+
         else:
             logger.warning("Generated SQL is None, skipping save.")
     
@@ -51,7 +56,7 @@ class Evaluator:
         file_path: str = f"./result/{output_name}/original_result.json"
         os.makedirs(os.path.dirname(file_path), exist_ok=True)
         with open(file_path, "a", encoding="utf-8") as f:
-            
+
             accuracy: bool = False
             if task.SQL is not None:
                 accuracy = self.validate_sql(task.SQL, pr_sql)
