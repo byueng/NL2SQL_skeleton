@@ -93,13 +93,19 @@ def tokenize(string: str) -> List[str]:
     # toks = [tok.strip("\"\"").lstrip("\"\"") for tok in toks]
     return toks
 
+def get_brackets(prefix_toks):
+    pass
+
 
 def scan_alias(toks):
     """Scan the index of 'as' and build the map for all alias"""
     as_idxs = [idx for idx, tok in enumerate(toks) if tok == 'as']
     alias = {}
     for idx in as_idxs:
-        alias[toks[idx+1]] = toks[idx-1]
+        if toks[idx-1] != ")" and toks[idx-1] != "(":
+            alias[toks[idx+1]] = toks[idx-1]
+        else:
+            get_brackets(toks[:idx])
     return alias
 
 
@@ -553,7 +559,7 @@ def load_data(fpath):
 
 
 def get_sql(schema, query):
-    toks = tokenize(query)
+    toks = [token.replace("\"", "") for token in tokenize(query)]
     tables_with_alias = get_tables_with_alias(schema.schema, toks)
     _, sql = parse_sql(toks, 0, tables_with_alias, schema)
 
@@ -573,3 +579,4 @@ def extract_sql(response: str) -> str:
         return sql
     else:
         return response.strip()
+    
