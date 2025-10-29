@@ -27,6 +27,8 @@
 import json
 import re
 import sqlite3
+
+from loguru import logger
 from typing import Dict, List, Any, Tuple
 from nltk import word_tokenize
 
@@ -90,11 +92,47 @@ def tokenize(string: str) -> List[str]:
         pre_tok: str = toks[eq_idx-1]
         if pre_tok in prefix:
             toks = toks[:eq_idx-1] + [pre_tok + "="] + toks[eq_idx+1: ]
-    # toks = [tok.strip("\"\"").lstrip("\"\"") for tok in toks]
     return toks
 
 def get_brackets(prefix_toks):
-    pass
+    if prefix_toks is None:
+        logger.info(f"prefix_tokens is empty!")
+        return False, []
+
+    status = False
+    stack = []
+    pairs = []
+    lidx = None
+    ridx = None
+
+    for i, t in enumerate(prefix_toks):
+        if t == "(":
+            stack.append(i)
+            pairs.append(i)
+        elif t == ")":
+            if stack:
+                stack.pop()
+            if pairs:
+                lidx_candidate = pairs.pop()
+            else:
+                lidx_candidate = None
+            if len(stack) == 0 and lidx_candidate is not None:
+                lidx = lidx_candidate
+                ridx = i
+        else:
+            continue
+
+    if lidx is None or ridx is None:
+        logger.info(f"brackets not found or unmatched, the sql parser failed.")
+        return False, []
+
+    if len(stack) != 0:
+        logger.info(f"brackets stack not empty, the sql parser failed.")
+        return False, []
+
+    status = True
+    start = max(0, lidx - 1)
+    return status, prefix_toks[start:ridx]
 
 
 def scan_alias(toks):
@@ -105,9 +143,13 @@ def scan_alias(toks):
         if toks[idx-1] != ")" and toks[idx-1] != "(":
             alias[toks[idx+1]] = toks[idx-1]
         else:
-            get_brackets(toks[:idx])
+            status, bracket_toks_list = get_brackets(toks[:idx])
+            if status:
+                bracket_toks = " ".join(bracket_toks_list)
+                alias[toks[idx+1]] = bracket_toks
+            else:
+                alias[toks[idx+1]] = "Invalid prefix tokens"
     return alias
-
 
 def get_tables_with_alias(schema: Schema, toks):
     tables = scan_alias(toks)
@@ -560,9 +602,8 @@ def load_data(fpath):
 
 def get_sql(schema, query):
     toks = [token.replace("\"", "") for token in tokenize(query)]
-    tables_with_alias = get_tables_with_alias(schema.schema, toks)
+    tables_with_alias = get_tables_with_alias(schema, toks)
     _, sql = parse_sql(toks, 0, tables_with_alias, schema)
-
     return sql
 
 def skip_semicolon(toks, start_idx):
