@@ -48,6 +48,7 @@ TABLE_TYPE = {
 COND_OPS = ('and', 'or')
 SQL_OPS = ('intersect', 'union', 'except')
 ORDER_OPS = ('desc', 'asc')
+NUMBERS = ('1', '2', '3', '4', '5', '6', '7', '8', '9', '0')
 
 def get_schema_from_json(fpath: str) -> Dict[str, List[str]]:
     with open(fpath) as f:
@@ -162,6 +163,9 @@ def parse_col(toks, start_idx, tables_with_alias, schema, default_tables=None):
     """
         :returns next idx, column id
     """
+    idx = start_idx
+    if toks[idx] == '(':
+        idx += 1
     tok_raw = toks[start_idx]
     # if column name is quoted like "Free Meal Count (K-12)", strip quotes
     if isinstance(tok_raw, str) and tok_raw.startswith('"') and tok_raw.endswith('"'):
@@ -201,6 +205,16 @@ def parse_col_unit(toks, start_idx, tables_with_alias, schema, default_tables=No
     len_ = len(toks)
     isBlock = False
     isDistinct = False
+    if toks[idx] == 'nullif':
+        idx += 1
+
+    if toks[idx] == '(':
+        isBlock = True
+        idx += 1
+
+    if toks[idx] == 'cast':
+        idx += 1
+
     if toks[idx] == '(':
         isBlock = True
         idx += 1
@@ -210,19 +224,26 @@ def parse_col_unit(toks, start_idx, tables_with_alias, schema, default_tables=No
         idx += 1
         assert idx < len_ and toks[idx] == '('
         idx += 1
-        if toks[idx] == "distinct":
+        if toks[idx] == 'distinct':
             idx += 1
             isDistinct = True
         idx, col_id = parse_col(toks, idx, tables_with_alias, schema, default_tables)
+        # "as" validation
+        if toks[idx] == 'as':
+            idx += 2
         assert idx < len_ and toks[idx] == ')'
         idx += 1
         return idx, (agg_id, col_id, isDistinct)
 
-    if toks[idx] == "distinct":
+    if toks[idx] == 'distinct':
         idx += 1
         isDistinct = True
+
     agg_id = AGG_OPS.index("none")
     idx, col_id = parse_col(toks, idx, tables_with_alias, schema, default_tables)
+
+    if toks[idx] == 'as':
+        idx += 2
 
     if isBlock:
         assert toks[idx] == ')'
@@ -238,32 +259,6 @@ def parse_val_unit(toks, start_idx, tables_with_alias, schema, default_tables=No
     if toks[idx] == '(':
         isBlock = True
         idx += 1
-    # handle CAST(...) expressions as a special value unit
-    # CAST can appear as a value in select / where / order by etc.
-    if toks[idx] == 'cast':
-        # expect syntax: cast ( <expr> as <type> )
-        assert idx + 1 < len_ and toks[idx+1] == '('
-        idx += 2  # skip 'cast' and '('
-        # parse inner expression as a value (could be column, number, string, or subselect)
-        idx, inner_val = parse_value(toks, idx, tables_with_alias, schema, default_tables)
-        # expect 'as'
-        assert idx < len_ and toks[idx] == 'as', "Expected 'as' in cast"
-        idx += 1
-        # collect type tokens until closing ')'
-        type_tokens = []
-        while idx < len_ and toks[idx] != ')':
-            type_tokens.append(toks[idx])
-            idx += 1
-        type_str = ' '.join(type_tokens)
-        assert idx < len_ and toks[idx] == ')'
-        idx += 1
-        # represent cast as a special col_unit-like object inside val_unit
-        # val_unit: (unit_op, col_unit1, col_unit2)
-        # we store col_unit1 as ('cast', inner_val, type_str)
-        if isBlock:
-            # if it was wrapped in parentheses, nothing more to do (we already consumed the ')')
-            pass
-        return idx, (UNIT_OPS.index('none'), ('cast', inner_val, type_str), None)
 
     col_unit1 = None
     col_unit2 = None
@@ -275,9 +270,16 @@ def parse_val_unit(toks, start_idx, tables_with_alias, schema, default_tables=No
         idx += 1
         idx, col_unit2 = parse_col_unit(toks, idx, tables_with_alias, schema, default_tables)
 
+    if idx < len_ and toks[idx] == ',':
+        idx += 1
+
+    if idx < len_ and toks[idx] in NUMBERS:
+        idx += 1
+
     if isBlock:
         assert toks[idx] == ')'
-        idx += 1  # skip ')'
+        while toks[idx] == ')':
+            idx += 1  # skip ')'
 
     return idx, (unit_op, col_unit1, col_unit2)
 
@@ -313,7 +315,6 @@ def parse_value(toks, start_idx, tables_with_alias, schema, default_tables=None)
         val = toks[idx]
         idx += 1
     else:
-        # handle CAST(...) as a value
         if toks[idx] == 'cast':
             # expect cast ( <expr> as <type> )
             assert idx + 1 < len_ and toks[idx+1] == '('
@@ -397,13 +398,16 @@ def parse_select(toks, start_idx, tables_with_alias, schema, default_tables=None
     assert toks[idx] == 'select', "'select' not found"
     idx += 1
     isDistinct = False
+    isCast = False
+
     if idx < len_ and toks[idx] == 'distinct':
         idx += 1
         isDistinct = True
-    val_units = []
 
+    val_units = []
+    # "selct operation" -> "from operation" index range.
     while idx < len_ and toks[idx] not in CLAUSE_KEYWORDS:
-        agg_id = AGG_OPS.index("none")
+        agg_id = AGG_OPS.index("none")                                 
         if toks[idx] in AGG_OPS:
             agg_id = AGG_OPS.index(toks[idx])
             idx += 1
@@ -411,6 +415,9 @@ def parse_select(toks, start_idx, tables_with_alias, schema, default_tables=None
         val_units.append((agg_id, val_unit))
         if idx < len_ and toks[idx] == ',':
             idx += 1  # skip ','
+
+        elif idx < len_ and toks[idx] == 'as':
+            idx += 2 # skip 'as'
 
     return idx, (isDistinct, val_units)
 
@@ -432,7 +439,8 @@ def parse_from(toks, start_idx, tables_with_alias, schema):
         if toks[idx] == '(':
             isBlock = True
             idx += 1
-
+        
+        # sub_sql idx+1.
         if toks[idx] == 'select':
             idx, sql = parse_sql(toks, idx, tables_with_alias, schema)
             table_units.append((TABLE_TYPE['sql'], sql))
@@ -440,7 +448,7 @@ def parse_from(toks, start_idx, tables_with_alias, schema):
             if idx < len_ and toks[idx] == 'join':
                 idx += 1  # skip join
             idx, table_unit, table_name = parse_table_unit(toks, idx, tables_with_alias, schema)
-            table_units.append((TABLE_TYPE['table_unit'],table_unit))
+            table_units.append((TABLE_TYPE['table_unit'], table_unit))
             default_tables.append(table_name)
         if idx < len_ and toks[idx] == "on":
             idx += 1  # skip on
