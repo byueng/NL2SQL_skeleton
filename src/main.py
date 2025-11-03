@@ -51,7 +51,7 @@ def load_dataset(data_path: str) -> List[Dict[str, Any]]:
 
 def main() -> None:
     # Debug model, if True using debug, or use cli model.
-    DEBUG_MODE: bool = True
+    DEBUG_MODE: bool = False
     if DEBUG_MODE:
         args: argparse.Namespace = parse_augements_debug()
     else:

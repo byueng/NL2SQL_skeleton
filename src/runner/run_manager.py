@@ -108,7 +108,8 @@ class RunManager:
         """
         for task in self.tasks:
             self.worker(task)
-            break
+        
+        
 
     def worker(self, task: Task) -> None:
         """

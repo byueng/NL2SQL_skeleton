@@ -24,15 +24,16 @@ class Schema:
         return self._idMap
 
     def _map(self, schema: Dict[str, List[str]]) -> Dict[str, str]:
-        idMap: Dict[str, str] = {'*': "__all__"}
+        # Use readable identifiers for columns and tables (no surrounding '__')
+        idMap: Dict[str, str] = {'*': '*'}
         id: int = 1
         for key, vals in schema.items():
             for val in vals:
-                idMap[key.lower() + "." + val.lower()] = "__" + key.lower() + "." + val.lower() + "__"
+                idMap[key.lower() + "." + val.lower()] = key.lower() + "." + val.lower()
                 id += 1
 
         for key in schema:
-            idMap[key.lower()] = "__" + key.lower() + "__"
+            idMap[key.lower()] = key.lower()
             id += 1
 
         return idMap
