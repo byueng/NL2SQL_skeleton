@@ -3,6 +3,7 @@
 # @Author  : jwm
 # @File    : schema_generator.py
 # @description: For the High King
+import os, json
 from abc import abstractmethod
 from typing import Optional, Dict, List, Any
 from sqlite3 import Connection
@@ -59,13 +60,24 @@ def ddl_schema(conn: Connection) -> Dict[str, List[str]]:
 
     return schema
 
-# class M_Schema(Schema):
-#     def __init__(self, db_id: str) -> None:
-#         super().__init__(db_id)
-
-#     def _run(self):
-#         return super()._run()
-
+def m_schema(conn: Connection) -> Dict:
+    data = None
+    db_info = conn.execute("PRAGMA database_list").fetchall()
+    db_path = db_info[0][2]
+    db_base = os.path.basename(db_path)[:-7]
+    schema: Dict = {}
+    m_schema_path = f"../data/m_schema"
+    m_schema_list = os.listdir(m_schema_path)
+    for i in m_schema_list:
+        if db_base in i:
+            with open(os.path.join(m_schema_path, i), "r", encoding="utf-8") as f:
+                data = json.load(f)
+            break
+    if data == None:
+        logger.warning(f"db_name doesn't exist in M_Schema file.")
+    else:
+        schema = data
+    return {k: schema[k] for k in schema.keys() if k != "schema"}
 
 # class MAC_SQL_Schema(Schema):
 #     def __init__(self, db_id: str) -> None:
@@ -75,4 +87,4 @@ def ddl_schema(conn: Connection) -> Dict[str, List[str]]:
 #         return super()._run()
 
 
-schema_list: Dict[str, Any] = {"DDL": ddl_schema}
+schema_list: Dict[str, Any] = {"DDL": ddl_schema, "M_Schema": m_schema}

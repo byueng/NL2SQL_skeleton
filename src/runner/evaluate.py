@@ -29,8 +29,8 @@ class Evaluator:
         if self.pr_sql is not None:
             pr_sql = self.pr_sql
             is_accuray = self.save_sql(pr_sql, self.task, self.output_name)
-            if not is_accuray:
-                self.parser(pr_sql)
+            # if not is_accuray:
+            #     self.parser(pr_sql)
         else:
             logger.warning("Generated SQL is None, skipping save.")
     

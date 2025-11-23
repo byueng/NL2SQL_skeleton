@@ -26,9 +26,9 @@ def parse_augements_debug() -> argparse.Namespace:
 
     debug_args = argparse.Namespace()
     debug_args.data_mode = "dev" 
-    debug_args.data_path = "../../dataset/BIRD/dev/"  
+    debug_args.data_path = "../data/BIRD/dev/"  
     debug_args.model_path = "./src/llm/models.json"
-    debug_args.schema_generator = "DDL"
+    debug_args.schema_generator = "M_Schema"
     
     print(f"[DEBUG] Using Debug")
     print(f"[DEBUG] data_mode: {debug_args.data_mode}")
@@ -51,7 +51,7 @@ def load_dataset(data_path: str) -> List[Dict[str, Any]]:
 
 def main() -> None:
     # Debug model, if True using debug, or use cli model.
-    DEBUG_MODE: bool = False
+    DEBUG_MODE: bool = True
     if DEBUG_MODE:
         args: argparse.Namespace = parse_augements_debug()
     else:

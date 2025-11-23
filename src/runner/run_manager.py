@@ -120,7 +120,7 @@ class RunManager:
         logger.info(f"begin task: {task.db_id} {task.question_id}")
         
         db_system: DB_System = DB_System(self.args, task)
-        schema: Schema = Schema(self.schema_generator(db_system.conn))
+        schema: Schema = self.schema_generator(db_system.conn)
 
         if self.agents is None:
             logger.warning(f"agents bind nothing")

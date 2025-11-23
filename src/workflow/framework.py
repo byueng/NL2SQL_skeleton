@@ -17,10 +17,10 @@ from runner.enum_aggretion import Model, Request, Response, Task
 from workflow.agents.meta_agent import MetaAgent
 
 class FrameWork:
-    def __init__(self, args: Any, sql_client: DB_System, schema: Schema, task: Task, agents: Optional[List[MetaAgent]]) -> None:
+    def __init__(self, args: Any, sql_client: DB_System, schema, task: Task, agents: Optional[List[MetaAgent]]) -> None:
         self.args = args
         self.sql_client: DB_System = sql_client
-        self.schema: Schema = schema
+        self.schema = schema
         self.task: Task = task
         self.agents: Optional[List[MetaAgent]] = agents
 
@@ -30,7 +30,7 @@ class FrameWork:
         """
         template_module = importlib.import_module("prompt_template." + template_name)
         template_func = getattr(template_module, template_name)
-        template: str = template_func(self.task, self.schema.schema)
+        template: str = template_func(self.task, self.schema)
         return template
 
     # need modify
